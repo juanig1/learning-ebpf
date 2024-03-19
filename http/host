@@ -1,0 +1,20 @@
+persist:
+// MTU size (def: 9000)
+sudo ip link set dev ens3 mtu 1500
+
+// deps
+sudo apt install linux-tools-common linux-tools-5.15.0-1045-oracle vim-tiny
+
+// ebpf object file:
+scp -i ssh-key-2024-03-18.key ../repos/learning-ebpf/http/http.bpf.o ubuntu@164.152.34.64:/home/ubuntu/http
+
+sudo bpftool prog load http/http.bpf.o  /sys/fs/bpf/http
+
+sudo bpftool net attach xdp id 100 dev ens3
+
+sudo cat /sys/kernel/debug/tracing/trace_pipe
+
+sudo bpftool net detach xdp dev ens3
+
+
+
