@@ -63,6 +63,9 @@ int tc_egress_(struct __sk_buff *skb)
 {
     struct iphdr ip;
     struct tcphdr tcp;
+    unsigned int payload_offset = 0;
+	unsigned int payload_length = 0;
+    
     if (0 != bpf_skb_load_bytes(skb, sizeof(struct ethhdr), &ip, sizeof(struct iphdr)))
     {
         bpf_printk("bpf_skb_load_bytes iph failed");
@@ -77,9 +80,17 @@ int tc_egress_(struct __sk_buff *skb)
 
     unsigned int src_port = bpf_ntohs(tcp.source);
     unsigned int dst_port = bpf_ntohs(tcp.dest);
-
     if (src_port == 80|| dst_port == 80|| src_port == 8080 || dst_port == 8080)
         bpf_printk("EGRESS %pI4:%u -> %pI4:%u", &ip.saddr, src_port, &ip.daddr, dst_port);
+    
+    //calculate payload offset and length
+    ip_header_length = ip.ihl << 2;    //SHL 2 -> *4 multiply
+	payload_offset = ETH_HLEN + ip_header_length + tcp_header_length;
+	payload_length = ip->tlen - ip_header_length - tcp_header_length;
+
+    if (0 != bpf_skb_load_bytes(skb, sizeof(struct ethhdr) + (ip.ihl << 2) + sizeof(struct tcphdr), &payload, payload_len)) {
+        bpf_printk("PAYLOAD: %d", payload);
+    }
 
     if (src_port != 8080)
         return TC_ACT_OK;
